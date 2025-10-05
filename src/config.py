@@ -42,7 +42,7 @@ def load_stocks_from_config() -> list:
                 
                 # 解析股票信息
                 parts = line.split(',')
-                if len(parts) >= 4:
+                if len(parts) >= 3:
                     stock_code = parts[0].strip()
                     stocks.append(stock_code)
         

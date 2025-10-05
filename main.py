@@ -87,7 +87,7 @@ def fetch_all_stocks():
     print("開始抓取...")
     stocks_data = fetcher.fetch_all_stocks()
     
-    if stocks_data and len(stocks_data) > 0:
+    if stocks_data is not None and len(stocks_data) > 0:
         print(f" 成功抓取 {len(stocks_data)} 支股票數據")
         print(f"每支股票數據已保存為獨立CSV檔案到: data/")
         
