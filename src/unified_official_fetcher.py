@@ -599,6 +599,7 @@ class UnifiedOfficialFetcher:
             需要更新的股票清單
         """
         from datetime import datetime, timedelta
+        from .config import get_stocks_by_market
         
         need_update = {
             'tse_stocks': [],
@@ -606,19 +607,25 @@ class UnifiedOfficialFetcher:
             'missing_stocks': []
         }
         
+        # 重新載入股票清單（檢查是否有新增的股票）
+        current_stocks = get_stocks_by_market()
+        current_tse_stocks = current_stocks.get('TSE', [])
+        current_tpex_stocks = current_stocks.get('TPEX', [])
+        all_current_stocks = current_tse_stocks + current_tpex_stocks
+        
         # 檢查格式化文件是否存在
         data_dir = PROJECT_ROOT / "data"
         if not data_dir.exists():
             data_dir.mkdir(parents=True, exist_ok=True)
         
-        # 檢查所有股票
-        for stock_code in self.stock_list:
+        # 檢查所有股票（包括新增的）
+        for stock_code in all_current_stocks:
             csv_file = data_dir / f"{stock_code}.csv"
             
             if not csv_file.exists():
                 # 文件不存在，需要更新
                 need_update['missing_stocks'].append(stock_code)
-                if stock_code in self.tse_stocks:
+                if stock_code in current_tse_stocks:
                     need_update['tse_stocks'].append(stock_code)
                 else:
                     need_update['tpex_stocks'].append(stock_code)
@@ -637,7 +644,7 @@ class UnifiedOfficialFetcher:
                             
                             # 檢查是否超過1天（但對於TPEX股票，允許更長的間隔）
                             days_old = (datetime.now() - latest_date).days
-                            if stock_code in self.tpex_stocks:
+                            if stock_code in current_tpex_stocks:
                                 # TPEX股票允許7天間隔，避免頻繁更新
                                 threshold_days = 7
                             else:
@@ -647,25 +654,25 @@ class UnifiedOfficialFetcher:
                             logger.debug(f"股票 {stock_code}: 最新日期 {latest_date.date()}, 距今 {days_old} 天, 閾值 {threshold_days} 天")
                             
                             if days_old > threshold_days:
-                                if stock_code in self.tse_stocks:
+                                if stock_code in current_tse_stocks:
                                     need_update['tse_stocks'].append(stock_code)
                                 else:
                                     need_update['tpex_stocks'].append(stock_code)
                         except Exception:
                             # 日期解析失敗，需要更新
-                            if stock_code in self.tse_stocks:
+                            if stock_code in current_tse_stocks:
                                 need_update['tse_stocks'].append(stock_code)
                             else:
                                 need_update['tpex_stocks'].append(stock_code)
                     else:
                         # 文件為空，需要更新
-                        if stock_code in self.tse_stocks:
+                        if stock_code in current_tse_stocks:
                             need_update['tse_stocks'].append(stock_code)
                         else:
                             need_update['tpex_stocks'].append(stock_code)
                 except Exception:
                     # 讀取失敗，需要更新
-                    if stock_code in self.tse_stocks:
+                    if stock_code in current_tse_stocks:
                         need_update['tse_stocks'].append(stock_code)
                     else:
                         need_update['tpex_stocks'].append(stock_code)
