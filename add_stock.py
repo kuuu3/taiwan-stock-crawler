@@ -23,60 +23,22 @@ def get_stock_name_and_market(stock_code: str) -> tuple:
     import requests
     import time
     
-    # 已知股票名稱映射
-    known_stock_names = {
-        '6651': '全宇昕',
-        '6922': '富強鑫',
-        '3430': '奇鈦科',
-        '4716': '大立光',
-        '6158': '禾昌',
-        '6425': '易通展',
-        '2330': '台積電',
-        '2317': '鴻海',
-        '2881': '富邦金',
-        '2454': '聯發科',
-        '2308': '台達電',
-        '6505': '台塑化',
-        '2408': '南亞科',
-        '2363': '矽統',
-        '2344': '華邦電',
-        '3260': '威剛',
-        '3324': '雙鴻',
-        '3535': '晶心科',
-        '5443': '均豪',
-        '2481': '強茂',
-    }
-    
-    # 先檢查已知清單
-    known_tpex_stocks = set()
-    known_tse_stocks = set()
+    # 先檢查配置檔案中是否已存在
     config_file = Path("stocks_config.txt")
-    
     if config_file.exists():
         with open(config_file, 'r', encoding='utf-8') as f:
             for line in f:
                 if line.strip() and not line.startswith('#'):
                     parts = line.strip().split(',')
-                    if len(parts) >= 3:
-                        code = parts[0].strip()
+                    if len(parts) >= 3 and parts[0].strip() == stock_code:
                         market = parts[2].strip()
-                        if market == 'TPEX':
-                            known_tpex_stocks.add(code)
-                        elif market == 'TSE':
-                            known_tse_stocks.add(code)
-    
-    # 如果已經在已知清單中，直接返回
-    if stock_code in known_tpex_stocks:
-        stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
-        return (stock_name, 'TPEX')
-    if stock_code in known_tse_stocks:
-        stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
-        return (stock_name, 'TSE')
+                        stock_name = parts[1].strip() if len(parts) > 1 else f"股票{stock_code}"
+                        return (stock_name, market)
     
     # 嘗試通過實際API檢測
     try:
         # 先嘗試TSE API
-        tse_url = f"https://www.twse.com.tw/exchangeReport/STOCK_DAY"
+        tse_url = "https://www.twse.com.tw/exchangeReport/STOCK_DAY"
         tse_params = {
             'response': 'json',
             'date': '20240101',  # 使用一個固定日期
@@ -88,15 +50,13 @@ def get_stock_name_and_market(stock_code: str) -> tuple:
         if response.status_code == 200:
             data = response.json()
             if 'data' in data and data['data']:
-                # 從TSE API獲取股票名稱
-                stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
                 print(f"Found stock {stock_code} in TSE")
-                return (stock_name, 'TSE')
+                return (f"股票{stock_code}", 'TSE')
         
         time.sleep(1)  # 禮貌間隔
         
         # 再嘗試TPEX API
-        tpex_url = f"https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
+        tpex_url = "https://www.tpex.org.tw/www/zh-tw/afterTrading/tradingStock"
         tpex_params = {
             'code': stock_code,
             'date': '2024/01/01',
@@ -106,41 +66,29 @@ def get_stock_name_and_market(stock_code: str) -> tuple:
         print(f"Checking TPEX API...")
         response = requests.get(tpex_url, params=tpex_params, timeout=10)
         if response.status_code == 200:
-            # 檢查回應內容是否包含股票數據
             content = response.text
             if '成交股數' in content or '成交金額' in content or stock_code in content:
-                # 從TPEX API獲取股票名稱
-                stock_name = f"股票{stock_code}"  # 默認名稱
-                
                 # 嘗試從內容中提取股票名稱
-                # TPEX API 格式: "個股日成交資訊 股票代號:6651 股票名稱:全宇昕 資料日期:113/06"
+                stock_name = f"股票{stock_code}"  # 預設名稱
+                
                 if '股票名稱:' in content:
                     lines = content.split('\n')
                     for line in lines:
                         if '股票名稱:' in line:
-                            # 提取股票名稱
                             parts = line.split('股票名稱:')
                             if len(parts) > 1:
                                 name_part = parts[1].strip()
-                                # 移除後面的空白和資料日期部分
                                 if ' ' in name_part:
-                                    stock_name = name_part.split()[0]
+                                    extracted_name = name_part.split()[0]
                                 else:
-                                    stock_name = name_part
+                                    extracted_name = name_part
                                 
-                                # 檢查提取的名稱是否有效（不是空字符串且不是股票代碼）
-                                if stock_name and stock_name != stock_code and len(stock_name) > 1:
-                                    # 成功提取到股票名稱
+                                # 檢查提取的名稱是否有效
+                                if extracted_name and extracted_name != stock_code and len(extracted_name) > 1:
+                                    stock_name = extracted_name
                                     break
-                                else:
-                                    # 提取失敗，使用已知映射或默認格式
-                                    stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
-                            else:
-                                stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
                             break
-                    else:
-                        # 沒有找到股票名稱行，使用已知映射或默認格式
-                        stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
+                
                 print(f"Found stock {stock_code} in TPEX")
                 return (stock_name, 'TPEX')
         
@@ -151,11 +99,9 @@ def get_stock_name_and_market(stock_code: str) -> tuple:
         print(f"API detection failed: {e}")
         # 降級到簡單規則
         if len(stock_code) == 4 and stock_code.isdigit():
-            stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
-            return (stock_name, 'TSE')
+            return (f"股票{stock_code}", 'TSE')
         elif len(stock_code) == 3 and stock_code.isdigit():
-            stock_name = known_stock_names.get(stock_code, f"股票{stock_code}")
-            return (stock_name, 'TPEX')
+            return (f"股票{stock_code}", 'TPEX')
         else:
             return (None, 'UNKNOWN')
 
