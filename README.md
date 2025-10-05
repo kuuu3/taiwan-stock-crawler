@@ -53,7 +53,7 @@ stock_data_fetcher/
 
 ##  使用方式
 
-### 方式一：互動式操作（推薦）
+### 方式一：互動式操作
 
 ```bash
 python main.py
@@ -145,10 +145,10 @@ python add_stock.py 2330 台積電 TSE
 A: 請檢查網路連接，或稍後再試
 
 ### Q: 某些股票抓不到數據？
-A: 可能是股票代碼錯誤或該股票已下市
+A: 可能是股票代碼錯誤或該股票分類錯誤
 
 ### Q: 數據格式問題？
-A: 請檢查 `stocks_config.txt` 格式是否正確，可能是分類錯誤
+A: 請檢查 `stocks_config.txt` 格式是否正確
 
 ### Q: 如何添加新股票？
 A: 使用 `python add_stock.py [股票代碼]` 或手動編輯配置文件
