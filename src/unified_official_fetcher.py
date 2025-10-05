@@ -468,17 +468,18 @@ class UnifiedOfficialFetcher:
             logger.error(f"抓取股票 {stock_code} 時發生錯誤: {e}")
             return pd.DataFrame()
 
-    def fetch_all_stocks(self, save_to_file: bool = True) -> pd.DataFrame:
+    def fetch_all_stocks(self, save_to_file: bool = True) -> Dict[str, pd.DataFrame]:
         """
-        獲取所有股票的數據
+        獲取所有股票的數據並保存為獨立CSV檔案
         
         Args:
             save_to_file: 是否保存到檔案
             
         Returns:
-            合併後的股價數據 DataFrame
+            股票數據字典 {股票代碼: DataFrame}
         """
-        all_data = []
+        all_stocks_data = {}
+        success_count = 0
         
         logger.info(f"開始獲取 {len(self.stock_list)} 支股票的官方數據...")
         
@@ -491,8 +492,19 @@ class UnifiedOfficialFetcher:
                 try:
                     df = self.twse_fetcher.fetch_stock_historical_data(stock_code, self.lookback_days)
                     if df is not None and not df.empty:
-                        all_data.append(df)
-                        logger.debug(f"  ✓ 成功獲取 {len(df)} 筆數據")
+                        all_stocks_data[stock_code] = df
+                        
+                        # 格式化並保存為獨立CSV檔案
+                        if save_to_file:
+                            success = self.formatter.format_to_standard_csv(df, stock_code)
+                            if success:
+                                success_count += 1
+                                logger.debug(f"  ✓ 成功獲取並保存 {len(df)} 筆數據")
+                            else:
+                                logger.warning(f"  ✗ 數據獲取成功但保存失敗")
+                        else:
+                            success_count += 1
+                            logger.debug(f"  ✓ 成功獲取 {len(df)} 筆數據")
                     else:
                         logger.warning(f"  ✗ 未獲取到數據")
                 except Exception as e:
@@ -507,28 +519,28 @@ class UnifiedOfficialFetcher:
                 try:
                     df = self.tpex_fetcher.fetch_stock_historical_data(stock_code, self.lookback_days)
                     if df is not None and not df.empty:
-                        all_data.append(df)
-                        logger.debug(f"  ✓ 成功獲取 {len(df)} 筆數據")
+                        all_stocks_data[stock_code] = df
+                        
+                        # 格式化並保存為獨立CSV檔案
+                        if save_to_file:
+                            success = self.formatter.format_to_standard_csv(df, stock_code)
+                            if success:
+                                success_count += 1
+                                logger.debug(f"  ✓ 成功獲取並保存 {len(df)} 筆數據")
+                            else:
+                                logger.warning(f"  ✗ 數據獲取成功但保存失敗")
+                        else:
+                            success_count += 1
+                            logger.debug(f"  ✓ 成功獲取 {len(df)} 筆數據")
                     else:
                         logger.warning(f"  ✗ 未獲取到數據")
                 except Exception as e:
                     logger.error(f"  ✗ 獲取TPEX股票 {stock_code} 時發生錯誤: {e}")
         
-        if not all_data:
-            logger.error("沒有成功獲取任何股票數據")
-            return pd.DataFrame()
+        logger.info(f"股票數據收集完成，成功處理 {success_count} 支股票")
+        logger.info(f"每支股票數據已保存為獨立CSV檔案到: data/")
         
-        # 合併所有數據
-        combined_df = pd.concat(all_data, ignore_index=True)
-        combined_df = combined_df.sort_values(['stock_code', 'date']).reset_index(drop=True)
-        
-        logger.info(f"官方數據收集完成，總共 {len(combined_df)} 筆數據")
-        
-        # 保存到檔案
-        if save_to_file:
-            self._save_data(combined_df)
-        
-        return combined_df
+        return all_stocks_data
     
     def _save_data(self, df: pd.DataFrame) -> None:
         """
