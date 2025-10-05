@@ -152,30 +152,119 @@ def add_stock_to_config(stock_code: str, stock_name: str = None, market_type: st
         print(f"Error adding stock: {e}")
         return False
 
+def interactive_add_stocks():
+    """互動式新增股票"""
+    print("=== 互動式股票新增 ===")
+    print("支援以下輸入格式：")
+    print("1. 單一股票代碼: 2330")
+    print("2. 多個股票代碼: 2330,2317,2454")
+    print("3. 空格分隔: 2330 2317 2454")
+    print("4. 輸入 'quit' 或 'exit' 退出")
+    print()
+    
+    while True:
+        user_input = input("請輸入股票代碼: ").strip()
+        
+        if user_input.lower() in ['quit', 'exit', 'q']:
+            print("退出程式")
+            break
+        
+        if not user_input:
+            print("請輸入有效的股票代碼")
+            continue
+        
+        # 解析輸入
+        stock_codes = []
+        
+        # 檢查是否包含逗號分隔
+        if ',' in user_input:
+            stock_codes = [code.strip() for code in user_input.split(',') if code.strip()]
+        # 檢查是否包含空格分隔
+        elif ' ' in user_input:
+            stock_codes = [code.strip() for code in user_input.split() if code.strip()]
+        else:
+            # 單一股票代碼
+            stock_codes = [user_input]
+        
+        # 驗證股票代碼格式
+        valid_codes = []
+        for code in stock_codes:
+            if code.isdigit() and (len(code) == 3 or len(code) == 4):
+                valid_codes.append(code)
+            else:
+                print(f"警告: {code} 不是有效的股票代碼格式")
+        
+        if valid_codes:
+            print(f"\n即將新增以下股票: {', '.join(valid_codes)}")
+            
+            # 批次新增
+            success_count = 0
+            failed_count = 0
+            
+            for i, stock_code in enumerate(valid_codes, 1):
+                print(f"[{i}/{len(valid_codes)}] 處理股票代碼: {stock_code}")
+                
+                try:
+                    success = add_stock_to_config(stock_code)
+                    if success:
+                        success_count += 1
+                        print(f"✓ {stock_code} 新增成功")
+                    else:
+                        failed_count += 1
+                        print(f"✗ {stock_code} 新增失敗")
+                except Exception as e:
+                    failed_count += 1
+                    print(f"✗ {stock_code} 處理錯誤: {e}")
+                
+                print("-" * 30)
+            
+            print("=" * 50)
+            print(f"批次新增完成！")
+            print(f"成功: {success_count} 個")
+            print(f"失敗: {failed_count} 個")
+        else:
+            print("沒有找到有效的股票代碼")
+        
+        print()
+        print(" 提示：輸入 'quit'、'exit' 或 'q' 可以退出互動模式")
+        print()
+
 def main():
     """主函數"""
     if len(sys.argv) < 2:
-        print("Usage: python add_stock.py <stock_code> [stock_name] [market_type]")
-        print("Example: python add_stock.py 2330 台積電 TSE")
-        print("Example: python add_stock.py 2330  # auto-detect market type")
+        print("=== 股票新增工具 ===")
+        print()
+        print("使用方式：")
+        print("1. 單一股票: python add_stock.py <stock_code> [stock_name] [market_type]")
+        print("2. 互動模式: python add_stock.py")
+        print()
+        print("範例：")
+        print("  python add_stock.py 2330")
+        print("  python add_stock.py")
+        print()
+        
+        # 詢問是否進入互動模式
+        choice = input("是否進入互動模式？(y/n): ").strip().lower()
+        if choice in ['y', 'yes', '是']:
+            interactive_add_stocks()
         return
     
     stock_code = sys.argv[1]
     stock_name = sys.argv[2] if len(sys.argv) > 2 else None
     market_type = sys.argv[3] if len(sys.argv) > 3 else None
     
-    print(f"Adding stock: {stock_code}")
+    print(f"新增股票: {stock_code}")
     if stock_name:
-        print(f"Stock name: {stock_name}")
+        print(f"股票名稱: {stock_name}")
     if market_type:
-        print(f"Market type: {market_type}")
+        print(f"市場類型: {market_type}")
     
     success = add_stock_to_config(stock_code, stock_name, market_type)
     
     if success:
-        print("Stock added successfully!")
+        print("股票新增成功！")
     else:
-        print("Failed to add stock!")
+        print("股票新增失敗！")
 
 if __name__ == "__main__":
     main()
