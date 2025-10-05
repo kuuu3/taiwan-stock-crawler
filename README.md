@@ -103,6 +103,11 @@ stock_data = fetcher.fetch_stock_data_backward_days('2330', 30)
 - 民國年與西元年轉換
 - 每支股票獨立 CSV 檔案
 
+### 5. 數據抓取範圍
+- **預設抓取期間**：一年（365天）
+- **可調整設定**：在 `src/config.py` 中修改 `LOOKBACK_DAYS` 參數
+- **影響功能**：抓取所有股票、抓取指定股票、增量更新
+
 
 
 ##  股票管理
