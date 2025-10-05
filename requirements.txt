@@ -1,0 +1,9 @@
+# 股票數據抓取工具依賴套件
+# Stock Data Fetcher Dependencies
+
+# 核心數據處理套件
+pandas>=1.3.0,<2.0.0
+
+# HTTP 請求處理
+requests>=2.25.0,<3.0.0
+
