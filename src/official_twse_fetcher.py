@@ -589,10 +589,12 @@ class OfficialTWSEFetcher:
                         months_to_download = self._calculate_months_to_download(target_start_date, earliest_date, existing_dates)
                     else:
                         logger.info(f"股票 {stock_code} 的數據已涵蓋用戶要求的時間範圍，無需下載")
-                        return existing_data
+                        # 轉換現有數據為標準格式（英文欄位名稱）
+                        return self._convert_existing_csv_to_standard_format(existing_data, stock_code)
                 else:
                     logger.info(f"股票 {stock_code} 的數據已是最新，無需下載")
-                    return existing_data
+                    # 轉換現有數據為標準格式（英文欄位名稱）
+                    return self._convert_existing_csv_to_standard_format(existing_data, stock_code)
         
         logger.info(f"需要下載 {len(months_to_download)} 個月的數據")
         
@@ -609,7 +611,8 @@ class OfficialTWSEFetcher:
         
         if not all_data:
             logger.warning(f"股票 {stock_code} 沒有獲取到任何新數據")
-            return existing_data
+            # 轉換現有數據為標準格式（英文欄位名稱）
+            return self._convert_existing_csv_to_standard_format(existing_data, stock_code)
         
         # 合併新數據
         new_df = pd.concat(all_data, ignore_index=True)
